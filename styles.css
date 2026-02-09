@@ -40,15 +40,17 @@
     box-sizing: border-box;
 }
 
-html {
-    scroll-behavior: smooth;
+html,
+body {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
 }
 
 body {
     font-family: 'Outfit', sans-serif;
     color: var(--text-main);
     line-height: 1.7;
-    overflow-x: hidden;
     background-color: var(--bg-light);
 }
 
