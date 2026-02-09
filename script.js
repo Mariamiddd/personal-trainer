@@ -1,80 +1,107 @@
 /**
  * Personal Trainer - Main Script
- * Organized into functional modules for better readability and maintainability.
+ * Optimized for performance, accessibility, and high-end visual feedback.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    initPreloader();
     initScrollReveal();
     initStickyHeader();
     initSmoothScroll();
     initMobileMenu();
-    initHeroTilt();
     initContactForm();
-    initProtocolSelection(); // Added selection system
+    initProtocolSelection();
 });
 
 /**
- * 7. Protocol Selection Logic
- * Bridges the gap between Protocol Cards and the Inquiry Form.
+ * 0. Preloader Logic
  */
-function initProtocolSelection() {
-    const cards = document.querySelectorAll('.program-card');
-    const programSelect = document.getElementById('program');
-    const contactSection = document.getElementById('contact');
+function initPreloader() {
+    const preloader = document.getElementById('preloader');
+    if (!preloader) return;
 
-    if (!cards.length || !programSelect) return;
-
-    cards.forEach(card => {
-        // Make the whole card clickable for better UX
-        card.style.cursor = 'pointer';
-
-        card.addEventListener('click', (e) => {
-            const protocolValue = card.getAttribute('data-value');
-            if (!protocolValue) return;
-
-            // 1. Select the option in the dropdown
-            programSelect.value = protocolValue;
-
-            // 2. Smoothly scroll to the contact form
-            const headerOffset = 90;
-            const elementPosition = contactSection.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: "smooth"
-            });
-
-            // 3. Visual feedback: briefly highlight the form
-            const form = document.querySelector('.contact-form');
-            form.classList.add('selection-highlight');
-            setTimeout(() => form.classList.remove('selection-highlight'), 1500);
-
-            // 4. Update the select field appearance (trigger any change events if needed)
-            programSelect.classList.add('field-highlight');
-            setTimeout(() => programSelect.classList.remove('field-highlight'), 1500);
-        });
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            preloader.classList.add('fade-out');
+            // Remove from DOM after transition
+            setTimeout(() => preloader.remove(), 800);
+        }, 500); // Minimum visibility time for smooth feel
     });
 }
 
 /**
- * 1. Scroll Reveal Animation
- * Uses IntersectionObserver to reveal elements as they enter the viewport.
+ * 1. Protocol Selection Logic
+ * Synchronizes cards with the inquiry form and provides visual feedback.
+ */
+function initProtocolSelection() {
+    const cards = document.querySelectorAll('.program-card');
+    const selectorItems = document.querySelectorAll('.selector-item');
+    const programSelect = document.getElementById('program');
+    const contactSection = document.getElementById('contact');
+
+    if (!programSelect) return;
+
+    cards.forEach(card => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', () => {
+            const val = card.getAttribute('data-value');
+            if (val) updateProtocolSelection(val, true);
+        });
+    });
+
+    selectorItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const val = item.getAttribute('data-value');
+            if (val) updateProtocolSelection(val, false);
+        });
+    });
+
+    function updateProtocolSelection(value, shouldScroll = false) {
+        programSelect.value = value;
+        selectorItems.forEach(item => {
+            item.classList.toggle('active', item.getAttribute('data-value') === value);
+        });
+
+        if (shouldScroll && contactSection) {
+            const headerHeight = document.querySelector('#main-header').offsetHeight || 80;
+            const elementPosition = contactSection.getBoundingClientRect().top + window.pageYOffset;
+
+            window.scrollTo({
+                top: elementPosition - headerHeight,
+                behavior: "smooth"
+            });
+
+            const form = document.querySelector('.contact-form');
+            if (form) {
+                form.classList.add('selection-highlight');
+                setTimeout(() => form.classList.remove('selection-highlight'), 1200);
+            }
+        }
+    }
+
+    // Expose for HTML onclick access
+    window.updateProtocolSelection = updateProtocolSelection;
+}
+
+/**
+ * 2. Scroll Reveal Animation
+ * Uses IntersectionObserver with a staggered entry for a premium feel.
  */
 function initScrollReveal() {
     const revealElements = document.querySelectorAll('.reveal-scroll');
-
     const observerOptions = {
-        threshold: 0.15,
-        rootMargin: "0px 0px -50px 0px"
+        threshold: 0.1,
+        rootMargin: "0px 0px -80px 0px"
     };
 
     const revealObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
+        // Group entries that appear together to calculate stagger
+        const appearing = entries.filter(e => e.isIntersecting);
+        appearing.forEach((entry, index) => {
+            setTimeout(() => {
                 entry.target.classList.add('active');
-                observer.unobserve(entry.target);
-            }
+            }, index * 150); // Increased stagger for better visibility
+            observer.unobserve(entry.target);
         });
     }, observerOptions);
 
@@ -82,60 +109,55 @@ function initScrollReveal() {
 }
 
 /**
- * 2. Sticky Header Effect
- * Toggles a class on the header based on scroll position.
+ * 3. Sticky Header
  */
 function initStickyHeader() {
     const header = document.querySelector('#main-header');
     if (!header) return;
 
     const handleScroll = () => {
-        const isScrolled = window.scrollY > 50;
-        header.classList.toggle('scrolled', isScrolled);
+        header.classList.toggle('scrolled', window.scrollY > 30);
     };
 
-    // Use a passive listener for better performance
     window.addEventListener('scroll', handleScroll, { passive: true });
 }
 
 /**
- * 3. Smooth Anchor Scrolling
- * Implements smooth scrolling for internal links.
+ * 4. Smooth Anchor Scrolling
  */
 function initSmoothScroll() {
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             const targetId = this.getAttribute('href');
-            if (targetId === '#') return;
+            if (targetId === '#' || targetId === '') return;
 
             const targetElement = document.querySelector(targetId);
             if (!targetElement) return;
 
             e.preventDefault();
-
-            const headerOffset = 90;
-            const elementPosition = targetElement.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+            const headerHeight = document.querySelector('#main-header').offsetHeight || 80;
+            const elementPosition = targetElement.getBoundingClientRect().top + window.pageYOffset;
 
             window.scrollTo({
-                top: offsetPosition,
+                top: elementPosition - headerHeight,
                 behavior: "smooth"
             });
 
-            // Close mobile menu if open
+            // Close mobile menu
             const nav = document.querySelector('#main-nav');
             const menuToggle = document.getElementById('menu-toggle');
-            if (nav && nav.classList.contains('active')) {
+            if (nav?.classList.contains('active')) {
                 nav.classList.remove('active');
                 menuToggle.classList.remove('open');
+                menuToggle.setAttribute('aria-expanded', 'false');
+                document.body.style.overflow = '';
             }
         });
     });
 }
 
 /**
- * 4. Mobile Menu Toggle
- * Handles hamburger menu interaction.
+ * 5. Mobile Menu Toggle
  */
 function initMobileMenu() {
     const menuToggle = document.getElementById('menu-toggle');
@@ -146,32 +168,13 @@ function initMobileMenu() {
     menuToggle.addEventListener('click', () => {
         const isOpen = nav.classList.toggle('active');
         menuToggle.classList.toggle('open', isOpen);
+        menuToggle.setAttribute('aria-expanded', isOpen);
+        document.body.style.overflow = isOpen ? 'hidden' : '';
     });
 }
 
 /**
- * 5. Interactive Hero Card (3D Tilt)
- * Adds a subtle 3D perspective effect on mouse move.
- */
-function initHeroTilt() {
-    const visualCard = document.querySelector('.visual-card');
-    if (!visualCard) return;
-
-    const handleMouseMove = (e) => {
-        const { innerWidth, innerHeight } = window;
-        const xAxis = (innerWidth / 2 - e.pageX) / 50;
-        const yAxis = (innerHeight / 2 - e.pageY) / 50;
-
-        visualCard.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-    };
-
-    // Throttle or use RequestAnimationFrame for smoother/cheaper updates
-    document.addEventListener('mousemove', handleMouseMove);
-}
-
-/**
- * 6. Contact Form Submission with Formspree (AJAX)
- * Prevents redirect and shows elegant inline success message
+ * 6. Contact Form Submission
  */
 function initContactForm() {
     const contactForm = document.getElementById('contact-form');
@@ -179,88 +182,50 @@ function initContactForm() {
 
     contactForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
         const submitBtn = contactForm.querySelector('button[type="submit"]');
-        if (!submitBtn) return;
+        const btnText = submitBtn.querySelector('.btn-text') || submitBtn;
 
-        const originalText = submitBtn.innerText;
+        const originalText = btnText.innerText;
         const formData = new FormData(contactForm);
 
-        // Show loading state
-        submitBtn.innerText = 'Initializing Protocol...';
+        btnText.innerText = 'Sending...';
         submitBtn.disabled = true;
-        submitBtn.style.opacity = '0.7';
-
-        // Create a timeout controller
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
         try {
             const response = await fetch(contactForm.action, {
                 method: 'POST',
                 body: formData,
-                signal: controller.signal,
-                headers: {
-                    'Accept': 'application/json'
-                }
+                headers: { 'Accept': 'application/json' }
             });
 
-            clearTimeout(timeoutId);
-
             if (response.ok) {
-                // Success - Show beautiful success message
                 showSuccessMessage(contactForm);
                 contactForm.reset();
-
-                // Re-enable button text for future if overlay is closed
-                submitBtn.innerText = originalText;
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
             } else {
-                const data = await response.json();
-                throw new Error(data.error || 'Form submission failed');
+                throw new Error('Submission failed');
             }
         } catch (error) {
-            clearTimeout(timeoutId);
-            console.error('Submission error:', error);
-
-            // Error state
-            if (error.name === 'AbortError') {
-                submitBtn.innerText = 'Timeout - Try Again';
-            } else {
-                submitBtn.innerText = 'Error - Try Again';
-            }
-
-            submitBtn.style.opacity = '1';
+            btnText.innerText = 'Error - Try Again';
             setTimeout(() => {
-                submitBtn.innerText = originalText;
+                btnText.innerText = originalText;
                 submitBtn.disabled = false;
             }, 3000);
         }
     });
 }
 
-/**
- * Display success message with elegant animation
- */
 function showSuccessMessage(form) {
-    // Create success overlay
-    const successMessage = document.createElement('div');
-    successMessage.className = 'form-success-overlay';
-    successMessage.innerHTML = `
+    const successOverlay = document.createElement('div');
+    successOverlay.className = 'form-success-overlay';
+    successOverlay.innerHTML = `
         <div class="success-content">
             <div class="success-icon">✓</div>
-            <h3>Protocol Initialized</h3>
-            <p>Your consultation request has been received. We'll analyze your baseline and reach out within 24 hours.</p>
-            <button class="btn secondary-light" onclick="this.closest('.form-success-overlay').remove();">Close</button>
+            <h3>Inquiry Received</h3>
+            <p>Your request has been sent successfully. We will be in touch shortly.</p>
+            <button class="btn secondary-light" onclick="this.closest('.form-success-overlay').remove(); document.body.style.overflow = '';">Close</button>
         </div>
     `;
-
-    // Insert and animate
-    form.style.position = 'relative';
-    form.appendChild(successMessage);
-
-    setTimeout(() => {
-        successMessage.classList.add('active');
-    }, 10);
+    form.appendChild(successOverlay);
+    setTimeout(() => successOverlay.classList.add('active'), 10);
 }
+
